@@ -26,9 +26,10 @@ class LogisticRegression(nn.Module):
         pytorch to make weights and biases, have a look at
         https://pytorch.org/docs/stable/nn.html
         """
-        super().__init__()
+        super(LogisticRegression, self).__init__()
         # In a pytorch module, the declarations of layers needs to come after
         # the super __init__ line, otherwise the magic doesn't work.
+        self.linear=torch.nn.Linear(n_features, n_classes)
 
     def forward(self, x, **kwargs):
         """
@@ -44,7 +45,10 @@ class LogisticRegression(nn.Module):
         forward pass -- this is enough for it to figure out how to do the
         backward pass.
         """
-        raise NotImplementedError
+        #raise NotImplementedError
+
+        #TODO make probability , dont need softmax
+        return self.linear(x)
 
 
 # Q2.2
