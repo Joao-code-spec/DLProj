@@ -68,8 +68,24 @@ class FeedforwardNetwork(nn.Module):
         attributes that each FeedforwardNetwork instance has. Note that nn
         includes modules for several activation functions and dropout as well.
         """
-        super().__init__()
+        super(FeedforwardNetwork, self).__init__()
         # Implement me!
+
+
+        #all layers are created in forward here is just what types you can create there
+        self.n_layers=layers
+        self.linear1=torch.nn.Linear(n_features, hidden_size)
+        #self.activation=torch.nn.ReLU()
+        if(activation_type=='relu'):
+            self.activation=torch.nn.ReLU()
+        elif(activation_type=='tanh'):
+            self.activation=torch.nn.Tanh()
+        
+
+        self.linear2=torch.nn.Linear(hidden_size, n_classes)
+        self.dropout = nn.Dropout(dropout)
+
+
 
     def forward(self, x, **kwargs):
         """
@@ -79,7 +95,12 @@ class FeedforwardNetwork(nn.Module):
         the output logits from x. This will include using various hidden
         layers, pointwise nonlinear functions, and dropout.
         """
-        raise NotImplementedError
+        #raise NotImplementedError
+        x = self.linear1(x)
+        x = self.activation(x)
+        x = self.linear2(x)
+        x = self.dropout(x)
+        return x
 
 
 def train_batch(X, y, model, optimizer, criterion, **kwargs):
@@ -178,7 +199,7 @@ def main():
         model = FeedforwardNetwork(
             n_classes,
             n_feats,
-            opt.hidden_size,
+            opt.hidden_sizes,
             opt.layers,
             opt.activation,
             opt.dropout
@@ -222,7 +243,7 @@ def main():
     if opt.model == "logistic_regression":
         config = "{}-{}".format(opt.learning_rate, opt.optimizer)
     else:
-        config = "{}-{}-{}-{}-{}-{}-{}".format(opt.learning_rate, opt.hidden_size, opt.layers, opt.dropout, opt.activation, opt.optimizer, opt.batch_size)
+        config = "{}-{}-{}-{}-{}-{}-{}".format(opt.learning_rate, opt.hidden_sizes, opt.layers, opt.dropout, opt.activation, opt.optimizer, opt.batch_size)
 
     plot(epochs, train_mean_losses, ylabel='Loss', name='{}-training-loss-{}'.format(opt.model, config))
     plot(epochs, valid_accs, ylabel='Accuracy', name='{}-validation-accuracy-{}'.format(opt.model, config))
