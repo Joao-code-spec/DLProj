@@ -47,7 +47,7 @@ class LogisticRegression(nn.Module):
         """
         #raise NotImplementedError
 
-        #TODO make probability , dont need softmax
+        #torch.optim.SGD(Weights,learningRate)  in training_batch i think
         return self.linear(x)
 
 
@@ -100,7 +100,13 @@ def train_batch(X, y, model, optimizer, criterion, **kwargs):
     This function should return the loss (tip: call loss.item()) to get the
     loss as a numerical value that is not part of the computation graph.
     """
-    raise NotImplementedError
+    #raise NotImplementedError
+    optimizer.zero_grad()
+    yhat=model(X)
+    loss=criterion(yhat,y)
+    loss.backward()
+    optimizer.step()
+    return loss.item()
 
 
 def predict(model, X):
@@ -201,7 +207,9 @@ def main():
             loss = train_batch(
                 X_batch, y_batch, model, optimizer, criterion)
             train_losses.append(loss)
+            #print("1" + train_losses[0])
 
+        #print("2" + train_losses[0])
         mean_loss = torch.tensor(train_losses).mean().item()
         print('Training loss: %.4f' % (mean_loss))
 
