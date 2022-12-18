@@ -80,9 +80,14 @@ class FeedforwardNetwork(nn.Module):
             self.activation=torch.nn.ReLU()
         elif(activation_type=='tanh'):
             self.activation=torch.nn.Tanh()
-        
+        hiddenLayers=[]
+        for i in range(layers-1):
+            hiddenLayers.append(torch.nn.Linear(hidden_size,hidden_size))
+            hiddenLayers.append(self.activation)
 
-        self.linear2=torch.nn.Linear(hidden_size, n_classes)
+        
+        hiddenLayers.append(torch.nn.Linear(hidden_size, n_classes))
+        self.seq=torch.nn.Sequential(*hiddenLayers)
         self.dropout = nn.Dropout(dropout)
 
 
@@ -98,7 +103,8 @@ class FeedforwardNetwork(nn.Module):
         #raise NotImplementedError
         x = self.linear1(x)
         x = self.activation(x)
-        x = self.linear2(x)
+        x = self.seq(x)
+        #x = self.linear2(x)
         x = self.dropout(x)
         return x
 
