@@ -20,7 +20,9 @@ def configure_seed(seed):
 
 class LinearModel(object):
     def __init__(self, n_classes, n_features, **kwargs):
+
         self.W = np.zeros((n_classes, n_features))
+        self.W_0 = np.zeros((n_classes, n_features))
 
     def update_weight(self, x_i, y_i, **kwargs):
         raise NotImplementedError
@@ -53,9 +55,10 @@ class Perceptron(LinearModel):
         y_i (scalar): the gold label for that example
         other arguments are ignored
         """
-        # Q1.1a
-        raise NotImplementedError
-
+        sign = np.argmax(np.sign(np.dot(self.W, x_i.T)))
+        if sign != y_i:
+            self.W[y_i, :] = self.W[y_i, :] + x_i
+            self.W[sign, :] = self.W[y_i, :] - x_i
 
 class LogisticRegression(LinearModel):
     def update_weight(self, x_i, y_i, learning_rate=0.001):
@@ -63,24 +66,38 @@ class LogisticRegression(LinearModel):
         x_i (n_features): a single training example
         y_i: the gold label for that example
         learning_rate (float): keep it at the default value for your plots
-        """
+        # """
+        # print(x_i.shape)
+        # print(y_i)
+        # print(self.W.shape)
+        # print(np.log(np.sum(np.exp(np.dot(self.W, x_i.T)))))
+        # # aa = 0
+        # # for i in range(10):
+        # #     aa += np.exp(np.dot(self.W[i, :], x_i.T))
+        # # print(aa)
+        # nn = np.dot(self.W[y_i, :], x_i.T)
+        # print(nn)
+
+        self.W = self.W_0 - learning_rate * (
+                    np.log(np.sum(np.exp(np.dot(self.W, x_i.T)))) - np.dot(self.W[y_i, :], x_i.T))
         # Q1.1b
-        raise NotImplementedError
 
 
 class MLP(object):
     # Q3.2b. This MLP skeleton code allows the MLP to be used in place of the
     # linear models with no changes to the training loop or evaluation code
     # in main().
-    def __init__(self, n_classes, n_features, hidden_size):
-        # Initialize an MLP with a single hidden layer.
-        raise NotImplementedError
+    def __init__(self, n_classes, n_features, hidden_size=200):
+        self.W_1 = random.normal(loc=0.0, scale=1.0, size=(hidden_size + 1, n_features))
+        self.W_1[-1, :] = 0
+        self.W_2 = random.normal(loc=0.0, scale=1.0, size=(n_classes, hidden_size))
 
     def predict(self, X):
-        # Compute the forward pass of the network. At prediction time, there is
-        # no need to save the values of hidden nodes, whereas this is required
-        # at training time.
-        raise NotImplementedError
+        intermediate = np.dot(self.W_1, X.T)  # (n_classes x n_examples)
+        intermediate[intermediate < 0] = 0
+        scores = np.dot(self.W_2, intermediate.T)
+        predicted_labels = scores.argmax(axis=0)  # (n_examples)
+        return predicted_labels
 
     def evaluate(self, X, y):
         """
@@ -147,6 +164,7 @@ def main():
     epochs = np.arange(1, opt.epochs + 1)
     valid_accs = []
     test_accs = []
+
     for i in epochs:
         print('Training epoch {}'.format(i))
         train_order = np.random.permutation(train_X.shape[0])
