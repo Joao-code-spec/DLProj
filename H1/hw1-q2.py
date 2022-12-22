@@ -26,9 +26,10 @@ class LogisticRegression(nn.Module):
         pytorch to make weights and biases, have a look at
         https://pytorch.org/docs/stable/nn.html
         """
-        super().__init__()
+        super(LogisticRegression, self).__init__()
         # In a pytorch module, the declarations of layers needs to come after
         # the super __init__ line, otherwise the magic doesn't work.
+        self.linear=torch.nn.Linear(n_features, n_classes)
 
     def forward(self, x, **kwargs):
         """
@@ -44,7 +45,10 @@ class LogisticRegression(nn.Module):
         forward pass -- this is enough for it to figure out how to do the
         backward pass.
         """
-        raise NotImplementedError
+        #raise NotImplementedError
+
+        #torch.optim.SGD(Weights,learningRate)  in training_batch i think
+        return self.linear(x)
 
 
 # Q2.2
@@ -64,8 +68,29 @@ class FeedforwardNetwork(nn.Module):
         attributes that each FeedforwardNetwork instance has. Note that nn
         includes modules for several activation functions and dropout as well.
         """
-        super().__init__()
+        super(FeedforwardNetwork, self).__init__()
         # Implement me!
+
+
+        #all layers are created in forward here is just what types you can create there
+        self.n_layers=layers
+        self.linear1=torch.nn.Linear(n_features, hidden_size)
+        #self.activation=torch.nn.ReLU()
+        if(activation_type=='relu'):
+            self.activation=torch.nn.ReLU()
+        elif(activation_type=='tanh'):
+            self.activation=torch.nn.Tanh()
+        hiddenLayers=[]
+        for i in range(layers-1):
+            hiddenLayers.append(torch.nn.Linear(hidden_size,hidden_size))
+            hiddenLayers.append(self.activation)
+
+        
+        hiddenLayers.append(torch.nn.Linear(hidden_size, n_classes))
+        self.seq=torch.nn.Sequential(*hiddenLayers)
+        self.dropout = nn.Dropout(dropout)
+
+
 
     def forward(self, x, **kwargs):
         """
@@ -75,7 +100,13 @@ class FeedforwardNetwork(nn.Module):
         the output logits from x. This will include using various hidden
         layers, pointwise nonlinear functions, and dropout.
         """
-        raise NotImplementedError
+        #raise NotImplementedError
+        x = self.linear1(x)
+        x = self.activation(x)
+        x = self.seq(x)
+        #x = self.linear2(x)
+        x = self.dropout(x)
+        return x
 
 
 def train_batch(X, y, model, optimizer, criterion, **kwargs):
@@ -96,7 +127,13 @@ def train_batch(X, y, model, optimizer, criterion, **kwargs):
     This function should return the loss (tip: call loss.item()) to get the
     loss as a numerical value that is not part of the computation graph.
     """
-    raise NotImplementedError
+    #raise NotImplementedError
+    optimizer.zero_grad()
+    yhat=model(X)
+    loss=criterion(yhat,y)
+    loss.backward()
+    optimizer.step()
+    return loss.item()
 
 
 def predict(model, X):
@@ -168,7 +205,7 @@ def main():
         model = FeedforwardNetwork(
             n_classes,
             n_feats,
-            opt.hidden_size,
+            opt.hidden_sizes,
             opt.layers,
             opt.activation,
             opt.dropout
@@ -197,7 +234,9 @@ def main():
             loss = train_batch(
                 X_batch, y_batch, model, optimizer, criterion)
             train_losses.append(loss)
+            #print("1" + train_losses[0])
 
+        #print("2" + train_losses[0])
         mean_loss = torch.tensor(train_losses).mean().item()
         print('Training loss: %.4f' % (mean_loss))
 
@@ -210,7 +249,7 @@ def main():
     if opt.model == "logistic_regression":
         config = "{}-{}".format(opt.learning_rate, opt.optimizer)
     else:
-        config = "{}-{}-{}-{}-{}-{}-{}".format(opt.learning_rate, opt.hidden_size, opt.layers, opt.dropout, opt.activation, opt.optimizer, opt.batch_size)
+        config = "{}-{}-{}-{}-{}-{}-{}".format(opt.learning_rate, opt.hidden_sizes, opt.layers, opt.dropout, opt.activation, opt.optimizer, opt.batch_size)
 
     plot(epochs, train_mean_losses, ylabel='Loss', name='{}-training-loss-{}'.format(opt.model, config))
     plot(epochs, valid_accs, ylabel='Accuracy', name='{}-validation-accuracy-{}'.format(opt.model, config))
