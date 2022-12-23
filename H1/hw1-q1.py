@@ -20,7 +20,6 @@ def configure_seed(seed):
 
 class LinearModel(object):
     def __init__(self, n_classes, n_features, **kwargs):
-
         self.W = np.zeros((n_classes, n_features))
         self.W_0 = np.zeros((n_classes, n_features))
 
@@ -60,6 +59,7 @@ class Perceptron(LinearModel):
             self.W[y_i, :] = self.W[y_i, :] + x_i
             self.W[sign, :] = self.W[y_i, :] - x_i
 
+
 class LogisticRegression(LinearModel):
     def update_weight(self, x_i, y_i, learning_rate=0.001):
         """
@@ -69,7 +69,7 @@ class LogisticRegression(LinearModel):
         # """
 
         self.W = self.W_0 - learning_rate * (
-                    np.log(np.sum(np.exp(np.dot(self.W, x_i.T)))) - np.dot(self.W[y_i, :], x_i.T))
+                np.log(np.sum(np.exp(np.dot(self.W, x_i.T)))) - np.dot(self.W[y_i, :], x_i.T))
         # Q1.1b
 
 
@@ -78,15 +78,27 @@ class MLP(object):
     # linear models with no changes to the training loop or evaluation code
     # in main().
     def __init__(self, n_classes, n_features, hidden_size=200):
-        self.W_1 = random.normal(loc=0.0, scale=1.0, size=(hidden_size + 1, n_features))
-        self.W_1[-1, :] = 0
-        self.W_2 = random.normal(loc=0.0, scale=1.0, size=(n_classes, hidden_size))
+        self.W_1 = np.random.normal(loc=0.0, scale=1.0, size=(n_features, hidden_size))
+        self.W_2 = np.random.normal(scale=0.1, size=(hidden_size, n_classes))
+        self.bias_1 = np.zeros(hidden_size)
+        self.bias_2 = np.zeros(n_classes)
+
+    def softmax(self, x):
+        return (np.exp(x) / np.exp(x).sum())
 
     def predict(self, X):
-        intermediate = np.dot(self.W_1, X.T)  # (n_classes x n_examples)
-        intermediate[intermediate < 0] = 0
-        scores = np.dot(self.W_2, intermediate.T)
-        predicted_labels = scores.argmax(axis=0)  # (n_examples)
+        A = np.dot(X, self.W_1) + self.bias_1
+        A[A < 0] = 0
+
+        B = np.dot(A, self.W_2) + self.bias_2
+        B[B < 0] = 0
+
+        predicted_labels = B.argmax(axis=0)
+
+        # intermediate = np.dot(self.W_1, X.T)  # (n_classes x n_examples)
+        # intermediate[intermediate < 0] = 0
+        # scores = np.dot(self.W_2, intermediate.T)
+        # predicted_labels = scores.argmax(axis=0)  # (n_examples)
         return predicted_labels
 
     def evaluate(self, X, y):
@@ -100,9 +112,35 @@ class MLP(object):
         n_possible = y.shape[0]
         return n_correct / n_possible
 
-    def train_epoch(self, X, y, learning_rate=0.001):
-        raise NotImplementedError
+    def relu(self, x):
+        return np.where(x < 0, 0, x)
 
+    def relu_deriv(self, x):
+        return np.where(x < 0, 0, 1)
+
+    def train_epoch(self, X, y, learning_rate=0.001):
+        A = np.dot(X, self.W_1) + self.bias_1
+        C = self.relu(A)
+        B = np.dot(C, self.W_2) + self.bias_2
+        D = self.relu(B)
+        G = self.softmax(D)
+
+        Eout = G - y
+        Ehid = self.relu_deriv(A) * np.dot(Eout, self.W_2.T)
+        dOut = np.outer(C, Eout)
+        dHid = np.outer(X, Ehid)
+
+        self.W_1 -= learning_rate * dHid
+        print('finish')
+
+        self.W_2 -= learning_rate * dOut
+        print('finish')
+
+        self.bias_1 -= learning_rate * Ehid
+        print('finish')
+
+        self.bias_2 -= learning_rate * Eout
+        print('finish')
 
 def plot(epochs, valid_accs, test_accs, name=''):
     plt.xlabel('Epoch')
@@ -151,21 +189,42 @@ def main():
     elif opt.model == 'logistic_regression':
         model = LogisticRegression(n_classes, n_feats)
     else:
-        model = MLP(n_classes, n_feats, opt.hidden_size, opt.layers)
+        model = MLP(n_classes, n_feats, opt.hidden_size)
     epochs = np.arange(1, opt.epochs + 1)
     valid_accs = []
     test_accs = []
 
     for i in epochs:
         print('Training epoch {}'.format(i))
+        print('aa')
         train_order = np.random.permutation(train_X.shape[0])
+        print('aa')
+
         train_X = train_X[train_order]
+        print('aa')
+
         train_y = train_y[train_order]
+        print('aa')
+
+        if opt.model == 'mlp':
+            print('aa')
+
+            b = np.zeros((train_y.size, train_y.max() + 1))
+            print('aa')
+
+            b[np.arange(train_y.size), train_y] = 1
+            print('aa')
+
+            train_y = b
+        print('aa')
+
         model.train_epoch(
             train_X,
             train_y,
             learning_rate=opt.learning_rate
         )
+        print('aa')
+
         valid_accs.append(model.evaluate(dev_X, dev_y))
         test_accs.append(model.evaluate(test_X, test_y))
 
