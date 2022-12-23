@@ -92,8 +92,7 @@ class MLP(object):
 
         B = np.dot(A, self.W_2) + self.bias_2
         B[B < 0] = 0
-
-        predicted_labels = B.argmax(axis=0)
+        predicted_labels = B.argmax(axis=1)
 
         # intermediate = np.dot(self.W_1, X.T)  # (n_classes x n_examples)
         # intermediate[intermediate < 0] = 0
@@ -119,28 +118,28 @@ class MLP(object):
         return np.where(x < 0, 0, 1)
 
     def train_epoch(self, X, y, learning_rate=0.001):
-        A = np.dot(X, self.W_1) + self.bias_1
-        C = self.relu(A)
-        B = np.dot(C, self.W_2) + self.bias_2
-        D = self.relu(B)
-        G = self.softmax(D)
+        for x_i, y_i in zip(X, y):
+            A = np.dot(x_i, self.W_1) + self.bias_1
+            A = A.astype(np.float32)
+            C = self.relu(A).astype(np.float32)
+            B = np.dot(C, self.W_2) + self.bias_2
+            D = self.relu(B)
+            G = self.softmax(D)
+            Eout = G - y_i
 
-        Eout = G - y
-        Ehid = self.relu_deriv(A) * np.dot(Eout, self.W_2.T)
-        dOut = np.outer(C, Eout)
-        dHid = np.outer(X, Ehid)
+            Ehid = self.relu_deriv(A) * np.dot(Eout, self.W_2.T)
 
-        self.W_1 -= learning_rate * dHid
-        print('finish')
+            Ehid = Ehid.astype(np.float32)
+            dOut = np.outer(C, Eout)
+            dHid = np.outer(x_i, Ehid)
 
-        self.W_2 -= learning_rate * dOut
-        print('finish')
+            #             dOut = np.dot(C.T, Eout)
+            #             dHid = np.dot(X.T, Ehid)#np.outer(X, Ehid).astype(np.float32)
+            self.W_1 -= learning_rate * dHid
+            self.W_2 -= learning_rate * dOut
+            self.bias_1 -= learning_rate * Ehid
+            self.bias_2 -= learning_rate * Eout
 
-        self.bias_1 -= learning_rate * Ehid
-        print('finish')
-
-        self.bias_2 -= learning_rate * Eout
-        print('finish')
 
 def plot(epochs, valid_accs, test_accs, name=''):
     plt.xlabel('Epoch')
@@ -182,7 +181,6 @@ def main():
 
     n_classes = np.unique(train_y).size  # 10
     n_feats = train_X.shape[1]
-
     # initialize the model
     if opt.model == 'perceptron':
         model = Perceptron(n_classes, n_feats)
@@ -203,10 +201,10 @@ def main():
         if opt.model == 'mlp':
             b = np.zeros((train_y.size, train_y.max() + 1))
             b[np.arange(train_y.size), train_y] = 1
-            train_y = b
+            train_y_new = b
         model.train_epoch(
             train_X,
-            train_y,
+            train_y_new,
             learning_rate=opt.learning_rate
         )
         valid_accs.append(model.evaluate(dev_X, dev_y))
