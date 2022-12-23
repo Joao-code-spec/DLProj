@@ -67,16 +67,6 @@ class LogisticRegression(LinearModel):
         y_i: the gold label for that example
         learning_rate (float): keep it at the default value for your plots
         # """
-        # print(x_i.shape)
-        # print(y_i)
-        # print(self.W.shape)
-        # print(np.log(np.sum(np.exp(np.dot(self.W, x_i.T)))))
-        # # aa = 0
-        # # for i in range(10):
-        # #     aa += np.exp(np.dot(self.W[i, :], x_i.T))
-        # # print(aa)
-        # nn = np.dot(self.W[y_i, :], x_i.T)
-        # print(nn)
 
         self.W = self.W_0 - learning_rate * (
                     np.log(np.sum(np.exp(np.dot(self.W, x_i.T)))) - np.dot(self.W[y_i, :], x_i.T))
@@ -114,7 +104,7 @@ class MLP(object):
         raise NotImplementedError
 
 
-def plot(epochs, valid_accs, test_accs):
+def plot(epochs, valid_accs, test_accs, name=''):
     plt.xlabel('Epoch')
     plt.ylabel('Accuracy')
     plt.xticks(epochs)
@@ -122,6 +112,7 @@ def plot(epochs, valid_accs, test_accs):
     plt.plot(epochs, test_accs, label='test')
     plt.legend()
     plt.show()
+    plt.savefig('%s.pdf' % (name), bbox_inches='tight')
 
 
 def main():
@@ -179,7 +170,7 @@ def main():
         test_accs.append(model.evaluate(test_X, test_y))
 
     # plot
-    plot(epochs, valid_accs, test_accs)
+    plot(epochs, valid_accs, test_accs, f"./plots/q1_{opt.model}/accuracy")
 
 
 if __name__ == '__main__':
