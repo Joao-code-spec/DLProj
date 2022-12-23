@@ -196,35 +196,19 @@ def main():
 
     for i in epochs:
         print('Training epoch {}'.format(i))
-        print('aa')
         train_order = np.random.permutation(train_X.shape[0])
-        print('aa')
-
         train_X = train_X[train_order]
-        print('aa')
-
         train_y = train_y[train_order]
-        print('aa')
 
         if opt.model == 'mlp':
-            print('aa')
-
             b = np.zeros((train_y.size, train_y.max() + 1))
-            print('aa')
-
             b[np.arange(train_y.size), train_y] = 1
-            print('aa')
-
             train_y = b
-        print('aa')
-
         model.train_epoch(
             train_X,
             train_y,
             learning_rate=opt.learning_rate
         )
-        print('aa')
-
         valid_accs.append(model.evaluate(dev_X, dev_y))
         test_accs.append(model.evaluate(test_X, test_y))
 
