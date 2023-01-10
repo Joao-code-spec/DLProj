@@ -109,7 +109,14 @@ class Encoder(nn.Module):
         # - Use torch.nn.utils.rnn.pad_packed_sequence to unpack the packed sequences
         #   (after passing them to the LSTM)
         #############################################
-        raise NotImplementedError
+        embedded=self.dropout(self.embedding(src))
+        packed=torch.nn.utils.rnn.pack_padded_sequence(embedded,lengths.to("cpu"),batch_first=True,enforce_sorted=False)
+        output,final_hidden=self.lstm(packed)
+        unpacked=torch.nn.utils.rnn.pad_packed_sequence(output,batch_first=True)
+        #print(output)
+        enc_output=self.dropout(unpacked[0])
+
+        #raise NotImplementedError
         #############################################
         # END OF YOUR CODE
         #############################################
@@ -117,7 +124,7 @@ class Encoder(nn.Module):
         # final_hidden: tuple with 2 tensors
         # each tensor is (num_layers * num_directions, batch_size, hidden_size)
         # TODO: Uncomment the following line when you implement the forward pass
-        # return enc_output, final_hidden
+        return enc_output, final_hidden
 
 
 class Decoder(nn.Module):
@@ -180,7 +187,14 @@ class Decoder(nn.Module):
         #         src_lengths,
         #     )
         #############################################
-        raise NotImplementedError
+        #print(tgt)
+        if(tgt.size(1)>1):
+            tgt=tgt[:,1:]
+        embedded=self.dropout(self.embedding(tgt))
+        outputs1, hidden=self.lstm(embedded,dec_state)
+        outputs=self.dropout(outputs1)
+
+        #raise NotImplementedError
         #############################################
         # END OF YOUR CODE
         #############################################
@@ -188,7 +202,7 @@ class Decoder(nn.Module):
         # dec_state: tuple with 2 tensors
         # each tensor is (num_layers, batch_size, hidden_size)
         # TODO: Uncomment the following line when you implement the forward pass
-        # return outputs, dec_state
+        return outputs, dec_state
 
 
 class Seq2Seq(nn.Module):
