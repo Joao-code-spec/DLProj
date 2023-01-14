@@ -26,10 +26,28 @@ class CNN(nn.Module):
         https://pytorch.org/docs/stable/nn.html
         """
         super(CNN, self).__init__()
-        
-        # Implement me!
-        
+        self.conv1 = nn.Conv2d(1, 8, kernel_size=(5, 5), stride=1, padding='same')
+
+        self.layers = nn.Sequential(
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=(2, 2), stride=2),
+            nn.Conv2d(8, 16, kernel_size=(3, 3), stride=1, padding=0),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=(2, 2), stride=2),
+            nn.Flatten(start_dim=1, end_dim=-1),
+            nn.Linear(576, 600),
+            nn.ReLU(),
+            nn.Dropout(p=0.3),
+            nn.Linear(600, 120),
+            nn.ReLU(),
+            nn.Linear(120, 10),
+            nn.LogSoftmax()
+        )
+
+
     def forward(self, x):
+        out = self.conv1(x)
+        return self.layers(out)
         """
         x (batch_size x n_channels x height x width): a batch of training 
         examples
@@ -45,7 +63,7 @@ class CNN(nn.Module):
         forward pass -- this is enough for it to figure out how to do the
         backward pass.
         """
-        raise NotImplementedError
+
 
 def train_batch(X, y, model, optimizer, criterion, **kwargs):
     """
@@ -64,8 +82,21 @@ def train_batch(X, y, model, optimizer, criterion, **kwargs):
 
     This function should return the loss (tip: call loss.item()) to get the
     loss as a numerical value that is not part of the computation graph.
+
     """
-    raise NotImplementedError
+    X = X.reshape((int(X.shape[0]), 1, int(np.sqrt(X.shape[1])), int(np.sqrt(X.shape[1]))))
+    optimizer.zero_grad()
+    out = model.forward(X)
+    #labels = out.argmax(dim=1)
+
+    loss = criterion(out, y)
+    loss.backward()
+    optimizer.step()
+    # print(labels)
+    # print(y)
+
+    return loss
+
 
 def predict(model, X):
     """X (n_examples x n_features)"""
@@ -80,6 +111,7 @@ def evaluate(model, X, y):
     y (n_examples): gold labels
     """
     model.eval()
+    X = X.reshape((int(X.shape[0]), 1, int(np.sqrt(X.shape[1])), int(np.sqrt(X.shape[1]))))
     y_hat = predict(model, X)
     n_correct = (y == y_hat).sum().item()
     n_possible = float(y.shape[0])
@@ -107,6 +139,8 @@ def plot_feature_maps(model, train_dataset):
     
     data, _ = train_dataset[4]
     data.unsqueeze_(0)
+    data = data.reshape((int(data.shape[0]), int(np.sqrt(data.shape[1])), int(np.sqrt(data.shape[1]))))
+    data.unsqueeze_(0)
     output = model(data)
 
     plt.imshow(data.reshape(28,-1)) 
@@ -130,14 +164,15 @@ def main():
                         need to change this value for your plots.""")
     parser.add_argument('-batch_size', default=8, type=int,
                         help="Size of training batch.")
-    parser.add_argument('-learning_rate', type=float, default=0.01,
+    parser.add_argument('-learning_rate', type=float, default=0.00001,
                         help="""Learning rate for parameter updates""")
     parser.add_argument('-l2_decay', type=float, default=0)
     parser.add_argument('-dropout', type=float, default=0.8)
     parser.add_argument('-optimizer',
-                        choices=['sgd', 'adam'], default='sgd')
+                        choices=['sgd', 'adam'], default='adam')
     
     opt = parser.parse_args()
+
 
     utils.configure_seed(seed=42)
 
