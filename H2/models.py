@@ -47,13 +47,21 @@ class Attention(nn.Module):
         # - Use torch.tanh to do the tanh
         # - Use torch.masked_fill to do the masking of the padding tokens
         #############################################
-        raise NotImplementedError
+        z=self.linear_in(query)
+        #masked=torch.masked_fill(z,src_seq_mask,float("-inf"))
+        scores=torch.bmm(z,encoder_outputs.transpose(1, 2))
+        p=torch.softmax(scores,2)
+        c=torch.bmm(p,encoder_outputs)
+        attn_out=torch.tanh(self.linear_out(torch.cat([query,c],dim=2)))
+
+
+        #raise NotImplementedError
         #############################################
         # END OF YOUR CODE
         #############################################
         # attn_out: (batch_size, 1, hidden_size)
         # TODO: Uncomment the following line when you implement the forward pass
-        # return attn_out
+        return attn_out
 
     def sequence_mask(self, lengths):
         """
@@ -113,7 +121,6 @@ class Encoder(nn.Module):
         packed=torch.nn.utils.rnn.pack_padded_sequence(embedded,lengths.to("cpu"),batch_first=True,enforce_sorted=False)
         output,final_hidden=self.lstm(packed)
         unpacked=torch.nn.utils.rnn.pad_packed_sequence(output,batch_first=True)
-        #print(output)
         enc_output=self.dropout(unpacked[0])
 
         #raise NotImplementedError
@@ -187,12 +194,21 @@ class Decoder(nn.Module):
         #         src_lengths,
         #     )
         #############################################
-        #print(tgt)
         if(tgt.size(1)>1):
-            tgt=tgt[:,1:]
+            tgt=tgt[:, :-1]
+        
         embedded=self.dropout(self.embedding(tgt))
-        outputs1, hidden=self.lstm(embedded,dec_state)
+        outputs1, dec_state=self.lstm(embedded,dec_state)
         outputs=self.dropout(outputs1)
+
+        if self.attn is not None:
+            o=torch.split(outputs,1,dim=1)
+            for output in o:
+                output = self.attn(
+                    output,
+                    encoder_outputs,
+                    src_lengths,
+                )
 
         #raise NotImplementedError
         #############################################
